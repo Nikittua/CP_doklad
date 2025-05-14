@@ -2,15 +2,15 @@ from manim import *
 import numpy as np
 from scipy.interpolate import lagrange
 
-# Белый фон, чтобы чёрная линия читалась
+# Белый фон
 config.background_color = WHITE
 
 class LagrangeInterpolationScene(Scene):
     def construct(self):
-        # 1) Узловые точки и полином SciPy
+        # 1) Узлы и итоговый полином
         x = np.array([1, 2, 3])
         y = np.array([10, 21, 38])
-        poly = lagrange(x, y)  # numpy.poly1d с коэффициентами [3,2,5]
+        poly = lagrange(x, y)
 
         # 2) Оси
         axes = Axes(
@@ -31,7 +31,7 @@ class LagrangeInterpolationScene(Scene):
         y_label = axes.get_y_axis_label(y_tex, direction=LEFT, buff=0.2)
         self.play(Write(x_label), Write(y_label))
 
-        # 4) Узловые точки и их подписи
+        # 4) Точки и их подписи
         dots = VGroup(*[
             Dot(axes.coords_to_point(xi, yi), color=BLACK)
             for xi, yi in zip(x, y)
@@ -45,12 +45,12 @@ class LagrangeInterpolationScene(Scene):
         self.play(Create(dots), Write(dot_labels))
         self.wait(0.5)
 
-        # 5) Три базисных графика y_i * l_i(x), формулы привязаны к их концу
+        # 5) Все три базисных y_i * l_i(x) и их подписи
         colors = [BLUE, GREEN, RED]
         basis_graphs = VGroup()
         for i, color in enumerate(colors):
             xi, yi = x[i], y[i]
-            # функция y_i * l_i(t)
+            # определяем функцию y_i * l_i(t)
             def yi_li(t, ii=i):
                 num = np.prod([t - xj for j, xj in enumerate(x) if j != ii])
                 den = np.prod([xi - xj for j, xj in enumerate(x) if j != ii])
@@ -63,27 +63,25 @@ class LagrangeInterpolationScene(Scene):
                 stroke_width=3,
             )
             basis_graphs.add(graph)
-            # формула вида "10·l₀(x)"
-            formula = MathTex(
-                rf"{yi}\,l_{{{i}}}(x)",
-                font_size=28
-            ).set_color(color)
-            # привяжем формулу к концу кривой (метод get_end())
-            formula.next_to(graph.get_end(), RIGHT, buff=0.2)
-            self.play(Create(graph), Write(formula), run_time=2)
+            # подпись вида "10 l₀(x)" над серединой кривой
+            mid = graph.point_from_proportion(0.5)
+            label = MathTex(rf"{yi}\,l_{{{i}}}(x)", font_size=28)\
+                        .set_color(color)\
+                        .next_to(mid, UP, buff=0.2)
+            self.play(Create(graph), Write(label), run_time=2)
 
         self.wait(0.5)
 
         # 6) Итоговый полином поверх всех
-        final_graph = axes.plot(
+        final = axes.plot(
             lambda t: poly(t),
             x_range=[0, 4],
             color=BLACK,
             stroke_width=5,
         )
-        self.play(Create(final_graph), run_time=2)
+        self.play(Create(final), run_time=2)
 
-        # 7) Подпись формулы L(x)=3x^2+2x+5 вверху
+        # 7) Подпись итоговой формулы
         c0, c1, c2 = poly.coef
         sum_formula = MathTex(
             rf"L(x) = {c0:.0f}x^2 "
